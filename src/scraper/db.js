@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { defaultDemoJobs } from './demo_jobs.js';
 
 // Determine if we should use Supabase or SQLite
 const useSupabase = process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY;
@@ -130,32 +131,44 @@ export async function saveSetting(key, value) {
 }
 
 export async function getJobs() {
+  let jobs = [];
   if (useSupabase) {
     const { data, error } = await supabase
       .from('jobs')
       .select('*')
       .order('score', { ascending: false });
     if (error) throw error;
-    return data;
+    jobs = data || [];
   } else {
     const stmt = nativeDb.prepare('SELECT * FROM jobs ORDER BY score DESC, created_at DESC');
-    return stmt.all();
+    jobs = stmt.all();
   }
+
+  if (jobs.length === 0) {
+    return defaultDemoJobs;
+  }
+  return jobs;
 }
 
 export async function getJob(id) {
+  let job = null;
   if (useSupabase) {
     const { data, error } = await supabase
       .from('jobs')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
     if (error) throw error;
-    return data;
+    job = data;
   } else {
     const stmt = nativeDb.prepare('SELECT * FROM jobs WHERE id = ?');
-    return stmt.get(id);
+    job = stmt.get(id);
   }
+
+  if (!job) {
+    job = defaultDemoJobs.find(j => j.id === id) || null;
+  }
+  return job;
 }
 
 export async function saveJobs(jobsList) {
