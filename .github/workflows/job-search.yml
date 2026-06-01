@@ -1,0 +1,31 @@
+name: Run Job Hunter Scraper
+
+on:
+  schedule:
+    # Run 4 times per day (at 00:00, 06:00, 12:00, and 18:00 UTC)
+    - cron: '0 0,6,12,18 * * *'
+  workflow_dispatch: # Allow manually running the scraper from the GitHub actions page
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: node src/scraper/scraper.js
